@@ -16,12 +16,6 @@ PASSWORD = "pass"
 
 app = FastAPI()
 security = HTTPBasic()
-limiter = FastAPILimiter(
-    key_func=lambda _: "global",  # Rate limit globally based on client IP
-    burst=True,  # Allow burst requests
-    max_requests=100,  # Maximum number of requests per window
-)
-limiter.init_app(app)
 
 models = {
     # Text Classification Models
@@ -130,7 +124,7 @@ def summarize_text(input_text: InputText):
     return results
 
 @lru_cache(maxsize=100)
-@app.post("/cached_output",dependencies=[Depends(authenticate), RateLimiter(max_requests=10, window_size=60)])
+@app.post("/cached_output",dependencies=[Depends(authenticate), RateLimiter(times=10, seconds=60)])
 def get_cached_model_output(task: str, text: str):
     if task in "classify":
         return classify_text(InputText(text=text))
@@ -147,7 +141,7 @@ def get_cached_model_output(task: str, text: str):
 def cached_model_output(task: str, input_text: InputText):
     return get_cached_model_output(task, input_text.text)
 
-@app.post("/benchmark",dependencies=[Depends(authenticate), RateLimiter(max_requests=10, window_size=60)])
+@app.post("/benchmark",dependencies=[Depends(authenticate), RateLimiter(times=10, seconds=60)])
 def benchmark_models(dataset: List[InputText1]):
     
     task_results = {}
